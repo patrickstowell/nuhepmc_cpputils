@@ -44,6 +44,7 @@ option(NuHepMC_CPPUtils_PROTOBUF_INTERFACE "Whether to build the protobuf interf
 option(NuHepMC_CPPUtils_ENABLE_TESTS "Whether to enable test suite" OFF)
 option(NuHepMC_CPPUtils_ENABLE_SANITIZERS_CLI "Whether to enable ASAN LSAN and UBSAN" OFF)
 option(NuHepMC_CPPUtils_ENABLE_GCOV_CLI "Whether to enable GCOV" OFF)
+option(NuHepMC_CPPUtils_BUILTIN_SPDLOG "Whether to build SPDLog using CPM" ON)
 
 if(NuHepMC_CPPUtils_ENABLE_TESTS)
     SET(NuHepMC_CPPUtils_ENABLE_SANITIZERS ON)
@@ -113,26 +114,37 @@ SET(NuHepMC_HEPMC3_MIN_VERSION 3.2.6)
 
 include(get_cpm)
 
-CPMFindPackage(
-    NAME spdlog
-    VERSION 1.14.1
-    GIT_TAG v1.14.1
-    GITHUB_REPOSITORY gabime/spdlog
-    OPTIONS 
-        "SPDLOG_COMPILED_LIB ON"
-        "SPDLOG_BUILD_SHARED ON"
-        "SPDLOG_INSTALL ON"
-)
+IF (NuHepMC_CPPUtils_BUILTIN_SPDLOG)
+    CPMFindPackage(
+        NAME spdlog
+        VERSION 1.14.1
+        GIT_TAG v1.14.1
+        GITHUB_REPOSITORY gabime/spdlog
+        OPTIONS 
+            "SPDLOG_COMPILED_LIB ON"
+            "SPDLOG_BUILD_SHARED ON"
+            "SPDLOG_INSTALL ON"
+    )
+else()
+  message(STATUS "Looking for system spdlog")
+  find_package(spdlog REQUIRED)
+endif()
 
 if(NuHepMC_CPPUtils_PYTHON_ENABLED)
   find_package(Python3 REQUIRED)
 
-  CPMFindPackage(
-    NAME pybind11
-    VERSION 2.13.6
-    GITHUB_REPOSITORY pybind/pybind11
-    GIT_TAG "v2.13.6"
-  )
+  set(pybind11_MIN_VERSION 2.13.6)
+  find_package(pybind11)
+  if (TARGET pybind11::module)
+    message(STATUS "Using system pybind11")
+    else()
+    CPMFindPackage(
+        NAME pybind11
+        VERSION ${pybind11_MIN_VERSION}
+        GITHUB_REPOSITORY pybind/pybind11
+        GIT_TAG "v${pybind11_MIN_VERSION}"
+    )
+  endif()
 endif()
 
 if(NuHepMC_CPPUtils_BUILTIN_HEPMC3)

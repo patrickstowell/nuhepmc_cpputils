@@ -6,7 +6,7 @@
 #include "HepMC3/GenEvent.h"
 #include "HepMC3/GenRunInfo.h"
 
-#include "spdlog/fmt/bundled/core.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace NuHepMC {
 

@@ -73,6 +73,30 @@ if ! type add_to_PYTHONPATH &> /dev/null; then
 
 fi
 
+if ! type add_to_CMAKE_PREFIX_PATH &> /dev/null; then
+
+ function add_to_CMAKE_PREFIX_PATH () {
+   for d; do
+
+     d=$(cd -- "$d" && { pwd -P || pwd; }) 2>/dev/null  # canonicalize symbolic links
+     if [ -z "$d" ]; then continue; fi  # skip nonexistent directory
+     
+     if [ "$d" == "/usr/lib" ] || [ "$d" == "/usr/lib64" ] || [ "$d" == "/usr/local/lib" ] || [ "$d" == "/usr/local/lib64" ]; then
+       case ":$CMAKE_PREFIX_PATH:" in
+         *":$d:"*) :;;
+         *) export CMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH:$d;;
+       esac
+     else
+       case ":$CMAKE_PREFIX_PATH:" in
+         *":$d:"*) :;;
+         *) export CMAKE_PREFIX_PATH=$d:$CMAKE_PREFIX_PATH;;
+       esac
+     fi
+   done
+ }
+
+fi
+
 if ! type is_in_PATH &> /dev/null; then
 
 function is_in_PATH () {
@@ -87,6 +111,7 @@ fi
 function nuhepmc_help {
   echo -e "[RUNLIKE]: ${0} [options]"
   echo -e "Where options can be:"
+  echo -e "\t--setup"
   echo -e "\t--env                       : eval the output of this script to"
   echo -e "\t                              setup NuHepMC environment."
   echo -e "\t--skele <mynewana.cxx>      : write an analysis skeleton file to"
@@ -116,6 +141,43 @@ while [[ ${#} -gt 0 ]]; do
       exit 0
     ;;
 
+    --lib-dirs)
+      if [ -e ${NuHepMC_ROOT}/lib64 ]; then
+       echo -n " -L${NuHepMC_ROOT}/lib/ -L${NuHepMC_ROOT}/lib64/ "
+      else
+       echo -n " -L${NuHepMC_ROOT}/lib/ "
+      fi
+      ;;
+      
+    --libs)
+      if [ -e ${NuHepMC_ROOT}/lib64 ]; then
+        echo -n " libnuhepmc_cpputils.so $(cd -- ${NuHepMC_ROOT}/lib64; ls *.so;) "
+      else
+        echo -n " libnuhepmc_cpputils.so "
+      fi
+      ;;
+
+    --include-dir)
+        echo -n " ${NuHepMC_ROOT}/include "
+        ;;
+        
+    --include-files)
+        echo -n " $(cd -- ${NuHepMC_ROOT}/include; ls NuHepMC/*.hxx NuHepMC/*.hh NuHepMC/*.h) "
+        ;;
+        
+
+    --setup)
+      export NuHepMC_ROOT
+      export NuHepMC_CPPUtils_ROOT=${NuHepMC_ROOT}
+      add_to_PATH ${NuHepMC_ROOT}/bin
+      add_to_LD_LIBRARY_PATH ${NuHepMC_ROOT}/lib
+      if [ -e ${NuHepMC_ROOT}/lib64 ]; then
+        add_to_LD_LIBRARY_PATH ${NuHepMC_ROOT}/lib64
+      fi
+      add_to_PYTHONPATH ${NuHepMC_ROOT}/python/@Python3_VERSION_MAJOR@.@Python3_VERSION_MINOR@
+      add_to_CMAKE_PREFIX_PATH ${NuHepMC_ROOT}/lib/cmake/NuHepMC_CPPUtils
+    ;;
+    
     --env)
       export NuHepMC_ROOT
       export NuHepMC_CPPUtils_ROOT=${NuHepMC_ROOT}
@@ -125,6 +187,7 @@ while [[ ${#} -gt 0 ]]; do
         add_to_LD_LIBRARY_PATH ${NuHepMC_ROOT}/lib64
       fi
       add_to_PYTHONPATH ${NuHepMC_ROOT}/python/@Python3_VERSION_MAJOR@.@Python3_VERSION_MINOR@
+      add_to_CMAKE_PREFIX_PATH ${NuHepMC_ROOT}/lib/cmake/NuHepMC_CPPUtils
 
       echo "export NuHepMC_ROOT=${NuHepMC_ROOT}"
       echo "export NuHepMC_CPPUtils_ROOT=${NuHepMC_CPPUtils_ROOT}"
@@ -183,3 +246,4 @@ while [[ ${#} -gt 0 ]]; do
 
   shift
 done
+echo ""
